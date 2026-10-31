@@ -282,7 +282,10 @@ const skyMat=new THREE.ShaderMaterial({side:THREE.BackSide,depthWrite:false,fog:
   vertexShader:'varying vec3 vP;void main(){vP=normalize(position);gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.0);}',
   fragmentShader:'uniform vec3 top,mid,hor,sunCol,sunDir;varying vec3 vP;void main(){float h=clamp(vP.y,0.0,1.0);vec3 c=mix(hor,mid,smoothstep(0.0,0.2,h));c=mix(c,top,smoothstep(0.2,0.95,h));if(vP.y<0.0)c=hor*0.92;float s=max(dot(vP,normalize(sunDir)),0.0);c+=sunCol*(pow(s,700.0)*1.6+pow(s,14.0)*0.28);gl_FragColor=vec4(c,1.0);}'});
 scene.add(new THREE.Mesh(new THREE.SphereGeometry(600,32,16),skyMat));
-(function(){const pm=new THREE.PMREMGenerator(renderer);const es=new THREE.Scene();es.add(new THREE.Mesh(new THREE.SphereGeometry(10,32,16),skyMat));scene.environment=pm.fromScene(es,0.04).texture;pm.dispose();})();
+const touchDev=('ontouchstart' in window)||navigator.maxTouchPoints>0;
+const HAS_ENV=!touchDev&&renderer.capabilities.isWebGL2&&!!renderer.getContext().getExtension('EXT_color_buffer_float');
+if(HAS_ENV){(function(){const pm=new THREE.PMREMGenerator(renderer);const es=new THREE.Scene();es.add(new THREE.Mesh(new THREE.SphereGeometry(10,32,16),skyMat));scene.environment=pm.fromScene(es,0.04).texture;pm.dispose();})();}
+else{scene.add(new THREE.HemisphereLight(L(dark?0xffd9b0:0xe6f2ff),L(dark?0x4a3a2a:0x4a6a33),dark?0.45:0.5));scene.add(new THREE.AmbientLight(L(0xffffff),0.12));}
 
 const cam={theta:0.65,phi:0.9,r:44,userSet:false};
 function resize(){const w=canvas.clientWidth,h=canvas.clientHeight;renderer.setSize(w,h,false);camera.aspect=w/h;camera.updateProjectionMatrix();if(!cam.userSet)cam.r=camera.aspect<0.8?64:46;}
@@ -323,7 +326,7 @@ const METAL={0xc9ced6:1,0xc0c0c0:1,0xcfd8dc:1,0xa0a8ad:1,0x888888:1,0x777777:1,0
 const CONCRETE=new Set([0xf4f1ea,0xe3ddd0,0xefe6d2,0xf7f1e3,0xf3efe6,0x9aa39a,0x9a9a92]);
 const mcache={};
 function mat(c){if(mcache[c])return mcache[c];const m=new THREE.MeshStandardMaterial({color:L(c),roughness:0.78,metalness:0.02,envMapIntensity:0.55});
-  const mt=METAL[c];if(mt){m.metalness=0.8*mt;m.roughness=0.3;m.envMapIntensity=1;}
+  const mt=METAL[c];if(mt){m.metalness=(HAS_ENV?0.8:0.3)*mt;m.roughness=0.3;m.envMapIntensity=1;}
   if(c===0x222222||c===0x111111)m.roughness=0.92;
   if(CONCRETE.has(c)){m.map=TEX.concrete;m.roughness=0.88;}
   mcache[c]=m;return m;}
